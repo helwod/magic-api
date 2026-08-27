@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # ---------- Build stage ----------
-FROM maven:3.9-eclipse-temurin-8 AS build
+# JDK 17 required: magic-api-servlet-jakarta & magic-api-plugin-springdoc modules target Java 17
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /workspace
 
 # Build the framework modules from source and install them into the local Maven repo

@@ -33,5 +33,6 @@ docker run -d --name magic-api -p 9999:9999 -v magic-api-data:/data/magic-api he
 - `magic-api.resource.location`：接口脚本存储路径（容器内 `/data/magic-api`，已挂载为卷）
 
 ## 说明
-- 镜像基于 JDK 8（与 magic-api 要求一致）。
+- 构建阶段使用 **JDK 17**：`magic-api-servlet-jakarta` 与 `magic-api-plugin-springdoc` 两个模块要求 `target 17`，用 JDK 8 编译会报 `invalid target release: 17`。
+- 运行阶段使用 **JRE 8**：应用基于 Spring Boot 2.4.5 + javax（与 magic-api 的 JDK 1.8 支持一致），jakarta 模块在 javax 环境下不会被加载。
 - 若只需使用已发布到 Maven Central 的 `2.2.2` starter，可把 `Dockerfile` 简化为仅构建 `magic-api-app`（不执行根目录 `mvn install`）。

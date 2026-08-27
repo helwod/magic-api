@@ -1,0 +1,13 @@
+services:
+  magic-api:
+    build: .
+    image: helwod/magic-api:2.2.2
+    container_name: magic-api
+    ports:
+      - "9999:9999"
+    volumes:
+      - magic-api-data:/data/magic-api
+    restart: unless-stopped
+
+volumes:
+  magic-api-data:

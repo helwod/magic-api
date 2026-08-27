@@ -1,15 +1,14 @@
 # syntax=docker/dockerfile:1
 
 # ---------- Build stage ----------
-# JDK 17 required: magic-api-servlet-jakarta & magic-api-plugin-springdoc modules target Java 17
-FROM maven:3.9-eclipse-temurin-17 AS build
+# Java 8 + Spring Boot 2.4.5. Only the host app is compiled here; the framework is
+# pulled from the published magic-api-spring-boot-starter on Maven Central, so the
+# Jakarta modules (which require JDK 17) are never compiled.
+FROM maven:3.9-eclipse-temurin-8 AS build
 WORKDIR /workspace
 
-# Build the framework modules from source and install them into the local Maven repo
-COPY . .
-RUN mvn -B -DskipTests install
-
-# Build the runnable Spring Boot host app (depends on the starter above)
+# Build the runnable Spring Boot host app (pulls magic-api-spring-boot-starter:2.2.2 from Central)
+COPY magic-api-app ./magic-api-app
 RUN cd magic-api-app && mvn -B -DskipTests package
 
 # ---------- Runtime stage ----------

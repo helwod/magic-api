@@ -59,7 +59,41 @@ docker-compose 已将其挂载为 `/app/config`，优先级高于 jar 内置 `ap
 
 > 安全提示：`.env` 中后台口令为明文，生产环境请改为强密码，避免提交真实口令到公开仓库。
 
+## 数据库配置（接口脚本 / 备份入库存储）
+默认 `magic-api.resource.type=file`，接口脚本存于挂载卷 `/data/magic-api`，无需数据库即可运行。
+若希望把接口脚本与备份写入数据库（便于多实例共享、集中备份），按以下步骤：
+
+1. **提供 JDBC 连接**：在 `.env` 中填写
+   - `SPRING_DATASOURCE_URL`（如 `jdbc:mysql://mysql:3306/magic_api?...`）
+   - `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD`
+   - `SPRING_DATASOURCE_DRIVER_CLASS_NAME`（`com.mysql.cj.jdbc.Driver` 或 `org.postgresql.Driver`）
+   - 并把 `DATASOURCE_EXCLUDE` **置空**（启用 DataSource 自动配置，建立主数据源）
+2. **切换存储类型**：`MAGIC_API_RESOURCE_TYPE=database`，并把
+   `MAGIC_API_RESOURCE_DATASOURCE`、`MAGIC_API_BACKUP_DATASOURCE` 设为同一个**具名数据源**名称（如 `default`）。
+3. **在 Web UI 注册具名数据源**：启动后进入 `/magic/web` →「数据源」→ 新增，名称填 `default`，
+   连接信息与上面 JDBC 一致。magic-api 会持久化该数据源；之后 `resource.datasource=default` 即可解析。
+   > 说明：magic-api 没有「配置即注册」的命名数据源，`resource.datasource` 必须指向 Web UI 中建立的具名数据源。
+   > 主 `spring.datasource` 仅作为 db 模块 / SQL 接口的默认连接，不直接用于脚本存储解析。
+
+| .env 变量 | 映射到配置项 | 说明 |
+|---|---|---|
+| `SPRING_DATASOURCE_URL` | `spring.datasource.url` | JDBC 连接串 |
+| `SPRING_DATASOURCE_USERNAME` | `spring.datasource.username` | 数据库账号 |
+| `SPRING_DATASOURCE_PASSWORD` | `spring.datasource.password` | 数据库口令 |
+| `SPRING_DATASOURCE_DRIVER_CLASS_NAME` | `spring.datasource.driver-class-name` | JDBC 驱动类 |
+| `DATASOURCE_EXCLUDE` | `spring.autoconfigure.exclude` | 留空=启用主数据源；填类名=排除（file 模式） |
+| `MAGIC_API_RESOURCE_TYPE` | `magic-api.resource.type` | `file` / `database` |
+| `MAGIC_API_RESOURCE_DATASOURCE` | `magic-api.resource.datasource` | database 模式引用的具名数据源 |
+| `MAGIC_API_BACKUP_DATASOURCE` | `magic-api.backup.datasource` | 备份引用的具名数据源 |
+
+**完整示例**（含 MySQL / PostgreSQL）：
+- `config/database-mysql.yml.example`
+- `config/database-postgres.yml.example`
+
+**随容器启动数据库**：`docker-compose.yml` 末尾附了一段注释掉的 `mysql` 服务，取消注释并在
+`magic-api` 服务下打开 `depends_on: [mysql]` 即可一键拉起「magic-api + MySQL」。
+
 ## 说明
 - 环境要求 **Java 8 + Spring Boot 2.4.5**：构建与运行阶段均使用 JDK/JRE 8。
 - Dockerfile 只编译宿主应用 `magic-api-app`，框架依赖从 Maven Central 拉取已发布的 `magic-api-spring-boot-starter:2.2.2`，因此不会编译需要 JDK 17 的 `magic-api-servlet-jakarta` / `magic-api-plugin-springdoc` 模块（这正是之前全量 `mvn install` 报 `invalid target release: 17` 的原因）。
-- 应用默认不依赖 JDBC 数据源即可启动（配置中已排除 `DataSourceAutoConfiguration`）。如需使用 SQL 接口，请添加 `spring-boot-starter-jdbc` + 数据库驱动，并在 Web UI 中在线配置数据源。
+- 应用默认不依赖 JDBC 数据源即可启动（`DATASOURCE_EXCLUDE` 默认排除 `DataSourceAutoConfiguration`）。`magic-api-app` 已内置 MySQL(`mysql-connector-java`)、PostgreSQL(`postgresql`) 驱动，配置 `spring.datasource.*` 并清空 `DATASOURCE_EXCLUDE` 即可连库；SQL 接口用的具名数据源在 Web UI 中配置。

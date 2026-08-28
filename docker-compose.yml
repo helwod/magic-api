@@ -21,7 +21,27 @@ services:
       - magic-api-data:/data/magic-api
       # 可选：外部覆盖配置目录，优先级高于 jar 内 application.yml
       - ./config:/app/config
+    # 数据库模式：取消注释以在 magic-api 启动前等待 mysql 就绪
+    # depends_on:
+    #   - mysql
     restart: unless-stopped
+
+  # ---- 可选：随容器启动的 MySQL（生产建议用外部托管数据库） ----
+  # 启用步骤：取消注释本服务，并把上方 magic-api 的 depends_on 打开；
+  #          再在 .env 中填写 SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/magic_api?... 并清空 DATASOURCE_EXCLUDE。
+  # mysql:
+  #   image: mysql:8.0
+  #   container_name: magic-api-mysql
+  #   command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+  #   environment:
+  #     MYSQL_DATABASE: magic_api
+  #     MYSQL_USER: magic
+  #     MYSQL_PASSWORD: magic123
+  #     MYSQL_ROOT_PASSWORD: root123
+  #   volumes:
+  #     - magic-api-mysql:/var/lib/mysql
+  #   restart: unless-stopped
 
 volumes:
   magic-api-data:
+  # magic-api-mysql:

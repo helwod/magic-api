@@ -24,10 +24,18 @@ server:
 spring:
   application:
     name: magic-api
-  # 本镜像默认不带数据库；排除 DataSource 自动配置，
-  # 由 magic-api 在运行时自行管理数据源（Web UI 中配置）。
+  # 主数据源 JDBC 连接（仅当 DATASOURCE_EXCLUDE 置空且 SPRING_DATASOURCE_URL 有值时生效）
+  # env: SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD / _DRIVER_CLASS_NAME
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:}
+    username: ${SPRING_DATASOURCE_USERNAME:}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:}
+  # DataSource 自动配置开关：
+  #   DATASOURCE_EXCLUDE 留空   -> 启用（配合上面的 datasource 建立主数据源，database 存储模式用）
+  #   DATASOURCE_EXCLUDE 填类名 -> 排除（纯 file 模式，避免无 url 启动报错）
   autoconfigure:
-    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+    exclude: ${DATASOURCE_EXCLUDE:org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration}
 
 magic-api:
   # Web UI 入口路径（env: MAGIC_API_WEB）。支持 /magic/web、/magic/web/、/magic/web/**

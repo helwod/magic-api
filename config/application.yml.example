@@ -1,11 +1,20 @@
-# 外部覆盖配置示例：复制为 application.yml 后生效（详见 README.md）
+# ============================================================
+# 外部覆盖配置示例（复制为 config/application.yml 后生效，详见 DOCKER.md）
+# 此文件挂载进容器 /app/config，优先级高于 jar 内置 application.yml。
+# 下方为「非数据库」常见覆盖；数据库存储请看：
+#   config/database-mysql.yml.example
+#   config/database-postgres.yml.example
+# ============================================================
 magic-api:
-  resource:
-    type: database        # file -> database：接口脚本入库存储
-    datasource: default   # 对应 Web UI 中配置的数据源名称
-  backup:
-    enable: true          # 开启备份，强烈建议
-    max-history: 30       # 保留 30 天
+  # 后台 / 编辑器登录（生产务必改强密码）
   security:
     username: admin
-    password: changeMe!    # 生产请改为强密码
+    password: changeMe!
+  # 接口存储：默认 file（脚本存于挂载卷 /data/magic-api）
+  resource:
+    type: file
+    location: /data/magic-api
+  # 备份（file 模式下可不开启；database 模式建议开启，见数据库示例）
+  backup:
+    enable: false
+

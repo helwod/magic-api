@@ -1,0 +1,28 @@
+# ============================================================
+# 数据库存储示例 —— MySQL
+# ------------------------------------------------------------
+# 用法（二选一）：
+#   A) 整文件复制为 config/application.yml（挂载进 /app/config，优先级高于内置配置）；
+#   B) 仅取下方 magic-api 片段，并入你已有的覆盖文件。
+#
+# 前置条件（缺一不可）：
+#   1) .env 中填写 SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD，
+#      并把 SPRING_DATASOURCE_DRIVER_CLASS_NAME 设为 com.mysql.cj.jdbc.Driver，
+#      且把 DATASOURCE_EXCLUDE 置空（启用 DataSource 自动配置）；
+#   2) 启动后进入 Web UI（/magic/web）→「数据源」→ 新增，名称填 default，
+#      连接信息与上面 JDBC 一致，保存（magic-api 会持久化该具名数据源）；
+#   3) 本文件的 magic-api.resource.type=database、datasource=default 即可生效；
+#      backup.datasource=default 同理。
+# ============================================================
+magic-api:
+  resource:
+    type: database
+    datasource: default          # 必须 = Web UI 中注册的具名数据源名称
+    readonly: false
+    prefix: magic-api
+    table-name: magic_api_file   # 接口脚本表
+  backup:
+    enable: true
+    max-history: 30              # 保留 30 天，<=0 不限制
+    table-name: magic_api_backup # 备份表
+    datasource: default

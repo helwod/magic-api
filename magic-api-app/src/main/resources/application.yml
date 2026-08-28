@@ -1,0 +1,111 @@
+# ============================================================
+# magic-api 宿主应用配置 (Spring Boot 2.4.5 / Java 8)
+# ------------------------------------------------------------
+# 所有 ${ENV:默认值} 占位符都可由 docker-compose 的 .env 注入，
+# 实现「同一镜像 + 不同环境配置」的初始化映射。
+#
+# Spring Boot 宽松绑定规则（变量 -> 配置项）示例：
+#   SERVER_PORT                 -> server.port
+#   MAGIC_API_WEB               -> magic-api.web
+#   MAGIC_API_RESOURCE_LOCATION -> magic-api.resource.location
+#   MAGIC_API_SECURITY_USERNAME -> magic-api.security.username
+#   其余 MAGIC_API_* 依次类推（点号转下划线、全小写）。
+#
+# 修改 .env 后 `docker compose up -d` 即可生效，无需重新构建镜像。
+# 也可把覆盖配置放到 ./config/application.yml（挂载进容器 /app/config，
+#   优先级高于本文件）。
+# ============================================================
+
+# ---------- 服务器 ----------
+server:
+  # 容器监听端口（对应环境变量 SERVER_PORT）
+  port: ${SERVER_PORT:9999}
+
+spring:
+  application:
+    name: magic-api
+  # 本镜像默认不带数据库；排除 DataSource 自动配置，
+  # 由 magic-api 在运行时自行管理数据源（Web UI 中配置）。
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+
+magic-api:
+  # Web UI 入口路径（env: MAGIC_API_WEB）。支持 /magic/web、/magic/web/、/magic/web/**
+  web: ${MAGIC_API_WEB:/magic/web}
+  # 接口统一前缀（env: MAGIC_API_PREFIX），留空表示根路径
+  prefix: ${MAGIC_API_PREFIX:}
+  # 启动时打印 banner
+  banner: ${MAGIC_API_BANNER:true}
+  # 脚本执行异常时是否向上抛出（默认 false，由统一结果包装）
+  throw-exception: ${MAGIC_API_THROW_EXCEPTION:false}
+  # 是否开启跨域支持（true 时 WebSocket 允许所有 Origin）
+  support-cross-domain: ${MAGIC_API_SUPPORT_CROSS_DOMAIN:true}
+  # 是否在日志中打印 SQL
+  show-sql: ${MAGIC_API_SHOW_SQL:true}
+  # 脚本编译缓存容量
+  compile-cache-size: ${MAGIC_API_COMPILE_CACHE_SIZE:500}
+  # 是否持久化保存 ResponseBody
+  persistence-response-body: ${MAGIC_API_PERSISTENCE_RESPONSE_BODY:true}
+  # 自动导入的模块，逗号分隔（默认 db）
+  auto-import-module: ${MAGIC_API_AUTO_IMPORT_MODULE:db}
+  # 是否允许覆盖同名应用接口（默认 false）
+  allow-override: ${MAGIC_API_ALLOW_OVERRIDE:false}
+
+  # ---------- 接口存储（file 模式映射到 Docker 卷，可持久化） ----------
+  resource:
+    # 存储类型：file | database
+    type: ${MAGIC_API_RESOURCE_TYPE:file}
+    # 文件存储位置（对应 Docker 卷 /data/magic-api）
+    location: ${MAGIC_API_RESOURCE_LOCATION:/data/magic-api}
+    # 是否只读（true 时页面只能查看不能保存）
+    readonly: ${MAGIC_API_RESOURCE_READONLY:false}
+    # 数据库存储时的 key 前缀
+    prefix: ${MAGIC_API_RESOURCE_PREFIX:magic-api}
+    # 以下两项仅在 type=database 时生效
+    table-name: ${MAGIC_API_RESOURCE_TABLE:magic_api_file}
+    datasource: ${MAGIC_API_RESOURCE_DATASOURCE:}
+
+  # ---------- 后台 / 编辑器登录鉴权（env: MAGIC_API_SECURITY_*） ----------
+  # 注意：向页面返回配置时会自动隐藏用户名密码，但 .env 中仍为明文，
+  #       生产环境务必修改为强密码，或通过密钥管理注入。
+  security:
+    username: ${MAGIC_API_SECURITY_USERNAME:admin}
+    password: ${MAGIC_API_SECURITY_PASSWORD:admin123}
+
+  # ---------- 集群远程推送秘钥（留空则不开启） ----------
+  secret-key: ${MAGIC_API_SECRET_KEY:}
+
+  # ---------- 分页默认值 ----------
+  page:
+    page: ${MAGIC_API_PAGE_PARAM:page}
+    size: ${MAGIC_API_SIZE_PARAM:size}
+    default-page: ${MAGIC_API_DEFAULT_PAGE:1}
+    default-size: ${MAGIC_API_DEFAULT_SIZE:10}
+    # 单页最大条数，-1 表示不限制
+    max-page-size: ${MAGIC_API_MAX_PAGE_SIZE:-1}
+
+  # ---------- SQL 缓存（LRU + TTL） ----------
+  cache:
+    enable: ${MAGIC_API_CACHE_ENABLE:false}
+    capacity: ${MAGIC_API_CACHE_CAPACITY:10000}
+    # 过期时间（毫秒），-1 表示不过期
+    ttl: ${MAGIC_API_CACHE_TTL:-1}
+
+  # ---------- 备份（强烈建议开启，防脚本丢失；需 type=database） ----------
+  backup:
+    enable: ${MAGIC_API_BACKUP_ENABLE:false}
+    # 保留天数，<=0 表示不限制
+    max-history: ${MAGIC_API_BACKUP_MAX_HISTORY:-1}
+    table-name: ${MAGIC_API_BACKUP_TABLE:magic_api_backup}
+    datasource: ${MAGIC_API_BACKUP_DATASOURCE:}
+
+  # ---------- 统一响应结果中的 code 映射 ----------
+  response-code:
+    success: ${MAGIC_API_CODE_SUCCESS:1}
+    invalid: ${MAGIC_API_CODE_INVALID:0}
+    exception: ${MAGIC_API_CODE_EXCEPTION:-1}
+
+  # ---------- 单表 CRUD 逻辑删除 ----------
+  crud:
+    logic-delete-column: ${MAGIC_API_LOGIC_DELETE_COLUMN:is_valid}
+    logic-delete-value: ${MAGIC_API_LOGIC_DELETE_VALUE:0}

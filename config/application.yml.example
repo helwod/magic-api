@@ -1,0 +1,11 @@
+# 外部覆盖配置示例：复制为 application.yml 后生效（详见 README.md）
+magic-api:
+  resource:
+    type: database        # file -> database：接口脚本入库存储
+    datasource: default   # 对应 Web UI 中配置的数据源名称
+  backup:
+    enable: true          # 开启备份，强烈建议
+    max-history: 30       # 保留 30 天
+  security:
+    username: admin
+    password: changeMe!    # 生产请改为强密码

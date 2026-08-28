@@ -1,12 +1,26 @@
+# docker-compose.yml —— magic-api 容器编排
+# 说明：
+#  - 根目录 .env 由 docker compose 自动加载，用于本文件的 ${VAR} 变量替换；
+#  - env_file: .env 把同一份变量注入容器环境，Spring Boot 经宽松绑定
+#    读取（MAGIC_API_WEB -> magic-api.web、SERVER_PORT -> server.port …）；
+#  - 修改配置只需编辑 .env 后执行 `docker compose up -d`，无需重新构建镜像。
+
 services:
   magic-api:
     build: .
-    image: helwod/magic-api:2.2.2
-    container_name: magic-api
+    image: helwod/magic-api:${MAGIC_API_IMAGE_TAG:-2.2.2}
+    container_name: ${CONTAINER_NAME:-magic-api}
+    # 端口映射 宿主机:容器（HOST_PORT / SERVER_PORT 均来自 .env）
     ports:
-      - "9999:9999"
+      - "${HOST_PORT:-9999}:${SERVER_PORT:-9999}"
+    # 注入 .env 全部变量到容器环境，供 Spring Boot 读取（核心 env 映射）
+    env_file:
+      - .env
     volumes:
+      # 接口脚本持久化（resource.type=file 时）
       - magic-api-data:/data/magic-api
+      # 可选：外部覆盖配置目录，优先级高于 jar 内 application.yml
+      - ./config:/app/config
     restart: unless-stopped
 
 volumes:

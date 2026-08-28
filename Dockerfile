@@ -15,11 +15,15 @@ RUN cd magic-api-app && mvn -B -DskipTests package
 FROM eclipse-temurin:8-jre
 WORKDIR /app
 
-# Persisted interface scripts live here (mounted as a volume)
-RUN mkdir -p /data/magic-api
+# 默认时区（可被 .env 中的 TZ 覆盖）
+ENV TZ=Asia/Shanghai
+
+# 持久化接口脚本目录（挂载为卷）+ 外部配置覆盖目录（挂载 ./config 后可覆盖 jar 内配置）
+RUN mkdir -p /data/magic-api /app/config
 
 COPY --from=build /workspace/magic-api-app/target/app.jar /app/app.jar
 
 EXPOSE 9999
 VOLUME ["/data/magic-api"]
+# Spring Boot 会优先读取 /app/config 下的 application.yml，实现容器外配置注入
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

@@ -8,3 +8,5 @@ out/
 bin/
 .myeclipse
 .workbuddy/
+# 文档抓取缓存（构建产物，非仓库内容）
+docs-crawl/

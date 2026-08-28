@@ -93,6 +93,21 @@ docker-compose 已将其挂载为 `/app/config`，优先级高于 jar 内置 `ap
 **随容器启动数据库**：`docker-compose.yml` 末尾附了一段注释掉的 `mysql` 服务，取消注释并在
 `magic-api` 服务下打开 `depends_on: [mysql]` 即可一键拉起「magic-api + MySQL」。
 
+## 排障：Web 控制台看不到「数据源」菜单
+「数据源」菜单要出现，容器里**必须存在可用的 `DataSource` bean**（magic-api 的动态数据源 `MagicDynamicDataSource`
+通过 `@Autowired(required=false) DataSource` 注入，为空时动态数据源不启用，UI 不显示该菜单）。依次排查：
+
+1. **依赖是否齐全**：镜像必须含 `spring-boot-starter-jdbc`（它带来 HikariCP 连接池）。
+   仅 `spring-jdbc` 不够——`DataSourceAutoConfiguration` 的 `Hikari` 内嵌配置要求 `com.zaxxer.hikari.HikariDataSource`，
+   缺它就建不出 `DataSource` bean。本仓库 `magic-api-app/pom.xml` 已内置该 starter。
+2. **是否排除了自动配置**：默认 `DATASOURCE_EXCLUDE` 值为 `...DataSourceAutoConfiguration`（为了无库也能启动 file 模式）。
+   要启用数据源，必须把 `DATASOURCE_EXCLUDE` **置空**。
+3. **是否提供了连接串**：`SPRING_DATASOURCE_URL` 不能为空；留空 + 不排除自动配置会导致 Spring Boot 2.x 启动直接报错
+   （`Failed to configure a DataSource: 'url' attribute is not specified`）。
+4. **驱动是否匹配**：MySQL 用 `com.mysql.cj.jdbc.Driver`，PostgreSQL 用 `org.postgresql.Driver`；否则 `DataSourceBuilder` 找不到实现同样建不出 bean。
+
+满足以上 4 点并 `docker compose up -d` 重启后，「数据源」菜单即出现；进入后新增名为 `default` 的具名数据源（连接信息同上）即可在脚本/备份/存储中使用。
+
 ## 说明
 - 环境要求 **Java 8 + Spring Boot 2.4.5**：构建与运行阶段均使用 JDK/JRE 8。
 - Dockerfile 只编译宿主应用 `magic-api-app`，框架依赖从 Maven Central 拉取已发布的 `magic-api-spring-boot-starter:2.2.2`，因此不会编译需要 JDK 17 的 `magic-api-servlet-jakarta` / `magic-api-plugin-springdoc` 模块（这正是之前全量 `mvn install` 报 `invalid target release: 17` 的原因）。

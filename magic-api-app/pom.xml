@@ -41,6 +41,13 @@
             <artifactId>fastjson</artifactId>
             <version>1.2.83</version>
         </dependency>
+        <!-- 连接池：DataSourceAutoConfiguration 需要 HikariCP 才能由 spring.datasource.* 生成 DataSource bean。
+             缺少它（仅 spring-jdbc 不够），即使配置了 SPRING_DATASOURCE_URL，容器里也不会有 DataSource bean，
+              magic-api 动态数据源为空，Web 控制台「数据源」菜单不出现。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
         <!-- 数据库驱动：database 存储模式 / SQL 接口需要。runtime 范围，由 SPRING_DATASOURCE_DRIVER_CLASS_NAME 选择 -->
         <dependency>
             <groupId>mysql</groupId>

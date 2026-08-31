@@ -17,19 +17,14 @@ services:
     env_file:
       - .env
     volumes:
-      # ===== 接口脚本持久化（resource.type=file 时） =====
-      # 方式A（默认，推荐）：绑定挂载到宿主机指定路径
-      #   路径由 .env 的 MAGIC_API_DATA_DIR 控制（默认 ./data/magic-api，即本项目 data/magic-api）
-      #   改盘/换目录只需改 .env，无需动本文件
-      - ${MAGIC_API_DATA_DIR:-./data/magic-api}:/data/magic-api
-      # 方式B（备选）：改用命名卷（不依赖宿主机目录，但资源包需另行导入卷内）
-      #   启用：取消下方注释，并把上方「方式A」那行注释掉；同时删除文件末尾 volumes: 块的注释
-      # - magic-api-data:/data/magic-api
+      # ===== 接口脚本（data/magic-api）已【在 Dockerfile 构建时 COPY 进镜像】 =====
+      # 默认不再绑定挂载宿主机目录：Windows Docker Desktop 的「File Sharing」未开启会导致挂载为空，
+      # 且即使挂载上，空宿主机目录也会覆盖镜像内已 COPY 的数据。故此处仅保留 /app/config 挂载。
+      # 如需改为运行时挂载持久化（UI 改动落盘宿主），取消下方注释并删除 Dockerfile 中的
+      # 「COPY data/magic-api /data/magic-api」一行：
+      # - ${MAGIC_API_DATA_DIR:-./data/magic-api}:/data/magic-api
       # 外部覆盖配置目录，优先级高于 jar 内 application.yml（仅当 config/application.yml 存在时生效）
       - ./config:/app/config
-    # Windows(Docker Desktop) 注意：绑定挂载要求「Settings → Resources → File Sharing」
-    # 勾选宿主机所在盘（如 C:），否则容器内的挂载目录会为空/挂载失败（表现为"挂载目录不对"）。
-    # 用方式B命名卷则可规避此限制。
     # 数据库模式：取消注释以在 magic-api 启动前等待 mysql 就绪
     # depends_on:
     #   - mysql

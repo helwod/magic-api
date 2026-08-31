@@ -1,0 +1,19 @@
+{
+  "properties" : { },
+  "id" : "f2973cb614154548a6d2e80a26cc0b09",
+  "script" : null,
+  "groupId" : "datasource:0",
+  "name" : "mysql",
+  "createTime" : 1787887220444,
+  "updateTime" : 1787887708009,
+  "lock" : null,
+  "createBy" : "admin",
+  "updateBy" : "admin",
+  "url" : "jdbc:mysql://mysql/mysql",
+  "username" : "root",
+  "password" : "root",
+  "key" : "mysql",
+  "maxRows" : -1,
+  "driverClassName" : "com.mysql.cj.jdbc.Driver",
+  "type" : null
+}

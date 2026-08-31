@@ -18,7 +18,8 @@ services:
       - .env
     volumes:
       # 接口脚本持久化（resource.type=file 时）
-      - magic-api-data:/data/magic-api
+      # 绑定到项目 data/magic-api，使「数据包解压到本项目」即可被容器加载（替代命名卷，便于 git 管理与更新）
+      - ./data/magic-api:/data/magic-api
       # 可选：外部覆盖配置目录，优先级高于 jar 内 application.yml
       - ./config:/app/config
     # 数据库模式：取消注释以在 magic-api 启动前等待 mysql 就绪
@@ -43,5 +44,4 @@ services:
   #   restart: unless-stopped
 
 volumes:
-  magic-api-data:
   # magic-api-mysql:

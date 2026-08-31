@@ -1,0 +1,19 @@
+{
+  "properties" : { },
+  "id" : "3d16bb04ea9544e0b2c901ade3ffee1d",
+  "script" : null,
+  "groupId" : "datasource:0",
+  "name" : "magic",
+  "createTime" : 1787902266095,
+  "updateTime" : null,
+  "lock" : null,
+  "createBy" : "admin",
+  "updateBy" : null,
+  "url" : "jdbc:mysql://10.0.0.22:3306/magic?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8",
+  "username" : "root",
+  "password" : "root",
+  "key" : "magic",
+  "maxRows" : -1,
+  "driverClassName" : "com.mysql.cj.jdbc.Driver",
+  "type" : null
+}

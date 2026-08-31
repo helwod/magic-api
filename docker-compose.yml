@@ -17,11 +17,19 @@ services:
     env_file:
       - .env
     volumes:
-      # 接口脚本持久化（resource.type=file 时）
-      # 绑定到项目 data/magic-api，使「数据包解压到本项目」即可被容器加载（替代命名卷，便于 git 管理与更新）
-      - ./data/magic-api:/data/magic-api
-      # 可选：外部覆盖配置目录，优先级高于 jar 内 application.yml
+      # ===== 接口脚本持久化（resource.type=file 时） =====
+      # 方式A（默认，推荐）：绑定挂载到宿主机指定路径
+      #   路径由 .env 的 MAGIC_API_DATA_DIR 控制（默认 ./data/magic-api，即本项目 data/magic-api）
+      #   改盘/换目录只需改 .env，无需动本文件
+      - ${MAGIC_API_DATA_DIR:-./data/magic-api}:/data/magic-api
+      # 方式B（备选）：改用命名卷（不依赖宿主机目录，但资源包需另行导入卷内）
+      #   启用：取消下方注释，并把上方「方式A」那行注释掉；同时删除文件末尾 volumes: 块的注释
+      # - magic-api-data:/data/magic-api
+      # 外部覆盖配置目录，优先级高于 jar 内 application.yml（仅当 config/application.yml 存在时生效）
       - ./config:/app/config
+    # Windows(Docker Desktop) 注意：绑定挂载要求「Settings → Resources → File Sharing」
+    # 勾选宿主机所在盘（如 C:），否则容器内的挂载目录会为空/挂载失败（表现为"挂载目录不对"）。
+    # 用方式B命名卷则可规避此限制。
     # 数据库模式：取消注释以在 magic-api 启动前等待 mysql 就绪
     # depends_on:
     #   - mysql
@@ -44,4 +52,6 @@ services:
   #   restart: unless-stopped
 
 volumes:
+  # 命名卷备选：启用方式B（./data/magic-api 改为 magic-api-data）时取消注释
+  magic-api-data:
   # magic-api-mysql:

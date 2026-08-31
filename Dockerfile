@@ -18,6 +18,14 @@ WORKDIR /app
 # 默认时区（可被 .env 中的 TZ 覆盖）
 ENV TZ=Asia/Shanghai
 
+# 中文支持：eclipse-temurin 基础镜像默认 locale 为 POSIX/C，Java 8 的 file.encoding /
+# sun.jnu.encoding 会退化为 ASCII，导致容器内读取中文文件名（接口脚本、分组目录）乱码。
+# 设 LANG=C.UTF-8（glibc 内置、无需 locale-gen）使 JVM 以 UTF-8 解码文件名与内容；
+# 再用 JAVA_TOOL_OPTIONS 强制 file.encoding=UTF-8 作为双保险。
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"
+
 # 持久化接口脚本目录（挂载为卷）+ 外部配置覆盖目录（挂载 ./config 后可覆盖 jar 内配置）
 RUN mkdir -p /data/magic-api /app/config
 

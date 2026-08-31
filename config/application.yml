@@ -1,0 +1,28 @@
+# ============================================================
+# 外部覆盖配置（挂载进容器 /app/config，优先级高于 jar 内置 application.yml）
+# ------------------------------------------------------------
+# 用途：显式锁定 magic-api 接口脚本存储路径为 /data/magic-api，
+#       与 docker-compose 的绑定挂载 ./data/magic-api:/data/magic-api 对齐。
+# 某些运行方式下框架会退回默认 ./data（容器内即 /app/data），用本文件强制覆盖，
+# 确保 magic-api 读写的就是我们导入的数据包（api/、function/、datasource/）。
+#
+# 优先级说明（Spring Boot）：OS 环境变量(MAGIC_API_*) > 本文件 > jar 内 application.yml。
+# 因此下面用 ${ENV:默认值} 占位：env 有值取 env，无值兜底 /data/magic-api，双重保险。
+# ============================================================
+
+server:
+  port: ${SERVER_PORT:9999}
+
+magic-api:
+  web: ${MAGIC_API_WEB:/magic/web}
+  resource:
+    # 关键：文件存储位置，必须指向容器内的绑定挂载路径
+    type: ${MAGIC_API_RESOURCE_TYPE:file}
+    location: ${MAGIC_API_RESOURCE_LOCATION:/data/magic-api}
+    readonly: ${MAGIC_API_RESOURCE_READONLY:false}
+    prefix: ${MAGIC_API_RESOURCE_PREFIX:magic-api}
+  security:
+    username: ${MAGIC_API_SECURITY_USERNAME:admin}
+    password: ${MAGIC_API_SECURITY_PASSWORD:admin123}
+  backup:
+    enable: ${MAGIC_API_BACKUP_ENABLE:false}

@@ -26,12 +26,13 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"
 
-# 持久化接口脚本目录（挂载为卷）+ 外部配置覆盖目录（挂载 ./config 后可覆盖 jar 内配置）
+# 接口脚本目录与外置配置目录：运行时由 docker-compose 绑定挂载（./data/magic-api -> /data/magic-api、
+# ./config -> /app/config）。这里仅 mkdir 保证目录存在（无挂载时也不报错），不再用 VOLUME 声明——
+# VOLUME 会让部分 docker-compose 版本在运行时改挂匿名卷、顶掉绑定挂载，导致目录变空。
 RUN mkdir -p /data/magic-api /app/config
 
 COPY --from=build /workspace/magic-api-app/target/app.jar /app/app.jar
 
 EXPOSE 9999
-VOLUME ["/data/magic-api"]
 # Spring Boot 会优先读取 /app/config 下的 application.yml，实现容器外配置注入
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

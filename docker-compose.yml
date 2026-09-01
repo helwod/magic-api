@@ -1,4 +1,3 @@
-# docker-compose.yml —— magic-api 容器编排
 # 说明：
 #  - 根目录 .env 由 docker compose 自动加载，用于本文件的 ${VAR} 变量替换；
 #  - env_file: .env 把同一份变量注入容器环境，Spring Boot 经宽松绑定
@@ -8,7 +7,7 @@
 services:
   magic-api:
     build: .
-    image: helwod/magic-api:${MAGIC_API_IMAGE_TAG:-2.2.2}
+    image: helwod/magic-api:${MAGIC_API_IMAGE_TAG:-latest}
     container_name: ${CONTAINER_NAME:-magic-api}
     # 端口映射 宿主机:容器（HOST_PORT / SERVER_PORT 均来自 .env）
     ports:
@@ -17,36 +16,37 @@ services:
     env_file:
       - .env
     volumes:
-      # ===== 接口脚本（data/magic-api）已【在 Dockerfile 构建时 COPY 进镜像】 =====
-      # 默认不再绑定挂载宿主机目录：Windows Docker Desktop 的「File Sharing」未开启会导致挂载为空，
-      # 且即使挂载上，空宿主机目录也会覆盖镜像内已 COPY 的数据。故此处仅保留 /app/config 挂载。
-      # 如需改为运行时挂载持久化（UI 改动落盘宿主），取消下方注释并删除 Dockerfile 中的
-      # 「COPY data/magic-api /data/magic-api」一行：
-      # - ${MAGIC_API_DATA_DIR:-./data/magic-api}:/data/magic-api
+      # ===== 接口脚本持久化（resource.type=file 时） =====
+      - magic-api-data:${MAGIC_API_RESOURCE_LOCATION:-/data/magic-api}
+
       # 外部覆盖配置目录，优先级高于 jar 内 application.yml（仅当 config/application.yml 存在时生效）
       - ./config:/app/config
+    # Windows(Docker Desktop) 注意：绑定挂载要求「Settings → Resources → File Sharing」
+    # 勾选宿主机所在盘（如 C:），否则容器内的挂载目录会为空/挂载失败（表现为"挂载目录不对"）。
+    # 用方式B命名卷则可规避此限制。
     # 数据库模式：取消注释以在 magic-api 启动前等待 mysql 就绪
-    # depends_on:
-    #   - mysql
+    depends_on:
+     - mysql
     restart: unless-stopped
 
   # ---- 可选：随容器启动的 MySQL（生产建议用外部托管数据库） ----
   # 启用步骤：取消注释本服务，并把上方 magic-api 的 depends_on 打开；
   #          再在 .env 中填写 SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/magic_api?... 并清空 DATASOURCE_EXCLUDE。
-  # mysql:
-  #   image: mysql:8.0
-  #   container_name: magic-api-mysql
-  #   command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-  #   environment:
-  #     MYSQL_DATABASE: magic_api
-  #     MYSQL_USER: magic
-  #     MYSQL_PASSWORD: magic123
-  #     MYSQL_ROOT_PASSWORD: root123
-  #   volumes:
-  #     - magic-api-mysql:/var/lib/mysql
-  #   restart: unless-stopped
+  mysql:
+    image: mysql:8.4.0
+    container_name: magic-api-mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: magic
+      MYSQL_USER: magic
+      MYSQL_PASSWORD: magic
+
+    volumes:
+       - magic-api-mysql:/var/lib/mysql
+    restart: unless-stopped
 
 volumes:
   # 命名卷备选：启用方式B（./data/magic-api 改为 magic-api-data）时取消注释
   magic-api-data:
-  # magic-api-mysql:
+  magic-api-mysql:

@@ -27,16 +27,17 @@ ENV LC_ALL=C.UTF-8
 ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"
 
 # 接口脚本目录与外置配置目录：
-#  - /data/magic-api 的数据包在【构建时直接 COPY 进镜像】，不依赖运行时绑定挂载，
-#    规避 Windows Docker Desktop File Sharing 未开启导致挂载为空的问题；build 完成后容器内即含
-#    api/ function/ datasource/ 等数据，无需再挂宿主机目录。
+#  - 数据包在【构建时直接 COPY 进镜像】，路径由 build arg RESOURCE_DIR 决定（默认 /data/magic-api），
+#    其值 = docker-compose 传入的 .env MAGIC_API_RESOURCE_LOCATION，确保「改 .env 路径，数据就烤进对应目录」。
 #  - /app/config 仍由 docker-compose 绑定挂载，用于注入 application.yml 覆盖（优先级高于 jar 内配置）。
-# 如需运行时持久化（UI 内新增/修改落盘到宿主机），改为在 compose 中对 /data/magic-api 启用绑定挂载，
-# 并删除下方 COPY data/magic-api 这一行（注意：绑定挂载会覆盖镜像内已 COPY 的数据）。
-RUN mkdir -p /data/magic-api /app/config
+# 注意：compose 中【不要】再把命名卷/绑定挂载盖到 RESOURCE_DIR 上，否则会屏蔽镜像内已 COPY 的数据导致为空。
+#  若需运行时持久化（UI 改动落盘宿主机），改为在 compose 中对 RESOURCE_DIR 启用【绑定挂载】（非命名卷），
+# 并删除下方 COPY data/magic-api 这一行。
+ARG RESOURCE_DIR=/data/magic-api
+RUN mkdir -p ${RESOURCE_DIR} /app/config
 
 # 将数据包 COPY 进镜像（构建上下文包含 data/magic-api，.dockerignore 未忽略该目录）
-COPY data/magic-api /data/magic-api
+COPY data/magic-api ${RESOURCE_DIR}
 
 COPY --from=build /workspace/magic-api-app/target/app.jar /app/app.jar
 

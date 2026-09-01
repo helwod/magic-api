@@ -67,6 +67,60 @@ magic-api.resource.location=/data/magic-api
 ## 在线编辑
 访问`http://localhost:9999/magic/web`进行操作
 
+# Docker 部署
+
+本项目提供开箱即用的 Docker / docker compose 部署方案，支持接口脚本持久化、首启动自动灌入示例数据、以及通过 `.env` 配置变量路径。
+
+## 目录结构
+- `docker-compose.yml`：编排 magic-api 与可选 MySQL 服务
+- `Dockerfile`：基于 `eclipse-temurin:8-jre` 构建运行镜像
+- `docker-entrypoint.sh`：容器启动时初始化数据（空目录灌种子、非空保留）
+- `.env`：所有可配置项（端口、资源路径、数据源等）
+- `config/application.yml`：外部配置覆盖（优先级高于 jar 内配置）
+
+## 快速开始
+```bash
+# 构建并启动（首次启动自动灌入示例数据）
+docker compose build
+docker compose up -d
+
+# 访问 Web 控制台
+http://localhost:9999/magic/web
+```
+
+## 核心特性
+- **变量路径**：接口数据目录由 `.env` 的 `MAGIC_API_RESOURCE_LOCATION` 控制（默认 `/data/magic-api`）。改路径只需 `docker compose up -d`，无需重建镜像（入口脚本在运行时读取该变量）。
+- **长久保存**：数据写入命名卷 `magic-api-data`，UI 内新增/修改的接口在重启、升级镜像后均不丢失。
+- **初始化示例**：首次启动（或卷为空）时，入口脚本自动从镜像内置种子 `/opt/magic-api-seed` 灌入 `api/ function/ datasource/` 等示例数据；卷内已有数据则保留、绝不覆盖。
+- **外部配置**：`config/application.yml` 挂载到 `/app/config`，可强制覆盖 `magic-api.resource.location` 等项。
+- **中文路径**：运行时镜像已设 `LANG=C.UTF-8`，容器内中文文件名不乱码。
+
+## 常用变量（.env）
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `SERVER_PORT` | 9999 | 容器对外端口 |
+| `MAGIC_API_RESOURCE_TYPE` | file | 接口存储类型，file=文件，database=数据库 |
+| `MAGIC_API_RESOURCE_LOCATION` | /data/magic-api | 接口数据目录（变量路径） |
+| `MAGIC_API_WEB` | /magic/web | Web 入口路径 |
+| `MYSQL_ROOT_PASSWORD` | root123 | MySQL root 口令（启用 MySQL 时） |
+
+## 切换到 MySQL 存储
+1. 编辑 `.env`：`MAGIC_API_RESOURCE_TYPE=database`，并填写 `SPRING_DATASOURCE_URL` 等连接项；
+2. 移除 `DATASOURCE_EXCLUDE` 中的 `mysql`；
+3. `docker compose up -d`。
+
+## 重置示例数据
+清空数据卷后重新启动即可重新灌入：
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+## 注意事项
+- 数据在命名卷中，不依赖宿主机目录，无需配置 Docker Desktop File Sharing。
+- 若需将数据落宿主机，将 compose 中 `magic-api-data:...` 一行改为绑定挂载 `${MAGIC_API_DATA_DIR:-./data/magic-api}:...`。
+- 改 `MAGIC_API_RESOURCE_LOCATION` 后只需 `docker compose up -d`；若改了需要重新烤进镜像的内容（如种子数据包），则需 `docker compose build`。
+
 # 文档/演示
 
 - 文档地址：[https://ssssssss.org](https://ssssssss.org)

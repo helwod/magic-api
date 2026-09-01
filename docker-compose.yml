@@ -2,17 +2,12 @@
 #  - 根目录 .env 由 docker compose 自动加载，用于本文件的 ${VAR} 变量替换；
 #  - env_file: .env 把同一份变量注入容器环境，Spring Boot 经宽松绑定
 #    读取（MAGIC_API_WEB -> magic-api.web、SERVER_PORT -> server.port …）；
-#  - 多数配置改 .env 后 `docker compose up -d` 即生效；但「数据目录 MAGIC_API_RESOURCE_LOCATION」
-#    会经 build args 烤进镜像，改它必须 `docker compose build` 重建镜像才生效（见 build.args）。
+#  - 多数配置改 .env 后 `docker compose up -d` 即生效；数据目录 MAGIC_API_RESOURCE_LOCATION 由入口脚本
+#    读取（不再需要 build args），改路径后 `docker compose build` 重建镜像即可（种子固定烤在镜像内）。
 
 services:
   magic-api:
-    build:
-      context: .
-      # 把「数据目录」作为 build arg 传给 Dockerfile，使其与运行时 MAGIC_API_RESOURCE_LOCATION 一致，
-      # 实现「改 .env 路径 → 数据包烤进对应目录」。改路径后务必 `docker compose build` 重建镜像。
-      args:
-        RESOURCE_DIR: ${MAGIC_API_RESOURCE_LOCATION:-/data/magic-api}
+    build: .
     image: helwod/magic-api:${MAGIC_API_IMAGE_TAG:-latest}
     container_name: ${CONTAINER_NAME:-magic-api}
     # 端口映射 宿主机:容器（HOST_PORT / SERVER_PORT 均来自 .env）
@@ -22,16 +17,17 @@ services:
     env_file:
       - .env
     volumes:
-      # ===== 接口脚本数据：已【在 Dockerfile 构建时 COPY 进镜像】于 RESOURCE_DIR =====
-      # 关键：此处【不要】把命名卷/绑定挂载盖到 RESOURCE_DIR 上，否则会屏蔽镜像内已烤入的数据导致为空
-      #      （你之前用 `magic-api-data` 命名卷挂载，正是"改路径后目录为空"的根因）。
-      # 如需运行时持久化（UI 改动落盘宿主机），改用【绑定挂载】而非命名卷，例如：
+      # ===== 接口脚本数据（持久化 + 首次灌示例） =====
+      # 数据目录由命名卷 magic-api-data 持久承载，挂载点 = MAGIC_API_RESOURCE_LOCATION（变量路径）。
+      # 入口脚本 docker-entrypoint.sh 在目录为空时从镜像内种子 /opt/magic-api-seed 灌入示例数据；
+      # 非空则保留（UI 改动不丢）→ 同时满足「变量路径 / 长久保存 / 初始化示例」。
+      # 想改用宿主机目录持久化（落盘到本项目 data/ 之外），把下面一行换成绑定挂载即可：
       #   - ${MAGIC_API_DATA_DIR:-./data/magic-api}:${MAGIC_API_RESOURCE_LOCATION:-/data/magic-api}
-      # 并删除 Dockerfile 中「COPY data/magic-api ${RESOURCE_DIR}」一行。
+      - magic-api-data:${MAGIC_API_RESOURCE_LOCATION:-/data/magic-api}
 
       # 外部覆盖配置目录，优先级高于 jar 内 application.yml（仅当 config/application.yml 存在时生效）
       - ./config:/app/config
-    # 数据已烤进镜像，无需 Windows File Sharing；仅 ./config 为绑定挂载（当前主机可正常挂载，保持不变）。
+    # 数据走命名卷（Docker 托管，Windows 无需 File Sharing）；仅 ./config 为绑定挂载（当前主机可挂载）。
     # 数据库模式：mysql 已启用，magic-api 启动前先等 mysql 就绪
     depends_on:
      - mysql
@@ -55,5 +51,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  # 仅 MySQL 使用命名卷；接口数据已烤进镜像，不再用 magic-api-data 命名卷
+  # 接口脚本数据：命名卷持久化（首次启动由入口脚本灌入示例数据）
+  magic-api-data:
+  # MySQL 数据持久化
   magic-api-mysql:
